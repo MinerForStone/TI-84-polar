@@ -168,7 +168,13 @@ unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint
     }
     else
     {
-        const component_t c_arg = polar2component(arg);
+        component_t c_arg = polar2component(arg);
+        bool sub_imag = false;
+        if (os_RealCompare(&c_arg.imag, &r_0) == -1)
+        {
+            c_arg.imag = os_RealNeg(&c_arg.imag);
+            sub_imag = true;
+        }
 
         char real_str[100];
         char imag_str[100];
@@ -176,7 +182,7 @@ unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint
         os_RealToStr(imag_str, &c_arg.imag, maxLength, mode, digits);
 
         strcpy(result, real_str);
-        strcat(result, ",");
+        strcat(result, sub_imag ? "-" : "+");
         strcat(result, imag_str);
         strcat(result, "i");
     }
