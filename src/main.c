@@ -20,18 +20,38 @@ struct component_t
 
 typedef struct component_t component_t;
 
-real_t r_0, r_1, r_n1, r_pi;
+real_t r_0, r_1, r_180, r_360, r_n1, r_n180, r_pi;
 polar_t p_0, p_n1;
 
 void init_consts()
 {
     r_0 = os_Int24ToReal(0);
     r_1 = os_Int24ToReal(1);
+    r_180 = os_Int24ToReal(180);
+    r_360 = os_Int24ToReal(360);
     r_n1 = os_Int24ToReal(-1);
+    r_n180 = os_Int24ToReal(-180);
     r_pi = os_RealAcosRad(&r_n1);
 
     p_0 = (polar_t){r_0, r_0};
     p_n1 = (polar_t){r_1, os_RealRadToDeg(&r_pi)};
+}
+
+void normalizeAngle(polar_t *arg)
+{
+    if (os_RealCompare(&arg->magnitude, &r_0) == -1)
+    {
+        arg->angle = os_RealAdd(&arg->angle, &r_180);
+        arg->magnitude = os_RealNeg(&arg->magnitude);
+    }
+    while (os_RealCompare(&arg->angle, &r_180) == 1)
+    {
+        arg->angle = os_RealSub(&arg->angle, &r_360);
+    }
+    while (os_RealCompare(&arg->angle, &r_n180) != 1)
+    {
+        arg->angle = os_RealAdd(&arg->angle, &r_360);
+    }
 }
 
 polar_t polarMul(const polar_t* arg1, const polar_t* arg2)
@@ -41,6 +61,7 @@ polar_t polarMul(const polar_t* arg1, const polar_t* arg2)
     result.magnitude = os_RealMul(&arg1->magnitude, &arg2->magnitude);
     result.angle = os_RealAdd(&arg1->angle, &arg2->angle);
 
+    normalizeAngle(&result);
     return result;
 }
 
@@ -51,6 +72,7 @@ polar_t polarDiv(const polar_t* arg1, const polar_t* arg2)
     result.magnitude = os_RealDiv(&arg1->magnitude, &arg2->magnitude);
     result.angle = os_RealSub(&arg1->angle, &arg2->angle);
 
+    normalizeAngle(&result);
     return result;
 }
 
@@ -103,10 +125,13 @@ polar_t component2polar(const component_t* arg)
         result.angle = os_RealAtanRad(&atan_ratio);
         result.angle = os_RealRadToDeg(&result.angle);
     }
+
     if (os_RealCompare(&arg->real, &r_0) == -1)
     {
-        result = polarMul(&result, &p_n1);
+        result.angle = os_RealAdd(&result.angle, &r_180);
     }
+
+    normalizeAngle(&result);
     return result;
 }
 
@@ -114,10 +139,10 @@ polar_t polarAdd(const polar_t* arg1, const polar_t* arg2)
 {
     component_t result;
 
-    const component_t carg1 = polar2component(arg1);
-    const component_t carg2 = polar2component(arg2);
-    result.real = os_RealAdd(&carg1.real, &carg2.real);
-    result.imag = os_RealAdd(&carg1.imag, &carg2.imag);
+    const component_t c_arg1 = polar2component(arg1);
+    const component_t c_arg2 = polar2component(arg2);
+    result.real = os_RealAdd(&c_arg1.real, &c_arg2.real);
+    result.imag = os_RealAdd(&c_arg1.imag, &c_arg2.imag);
 
     return component2polar(&result);
 }
@@ -143,12 +168,12 @@ unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint
     }
     else
     {
-        const component_t carg = polar2component(arg);
+        const component_t c_arg = polar2component(arg);
 
         char real_str[100];
         char imag_str[100];
-        os_RealToStr(real_str, &carg.real, maxLength, mode, digits);
-        os_RealToStr(imag_str, &carg.imag, maxLength, mode, digits);
+        os_RealToStr(real_str, &c_arg.real, maxLength, mode, digits);
+        os_RealToStr(imag_str, &c_arg.imag, maxLength, mode, digits);
 
         strcpy(result, real_str);
         strcat(result, ",");
@@ -244,6 +269,7 @@ polar_t parseValue(const char* expr)
         value.magnitude = os_StrToReal(buf1, NULL);
         value.angle = os_StrToReal(buf2, NULL);
 
+        normalizeAngle(&value);
         return value;
     }
     if (is_imag)
@@ -254,7 +280,9 @@ polar_t parseValue(const char* expr)
         value.real = os_StrToReal(buf1, NULL);
         value.imag = os_StrToReal(buf2, NULL);
 
-        return component2polar(&value);
+        polar_t p_value = component2polar(&value);
+        normalizeAngle(&p_value);
+        return p_value;
     }
 
     buf1[i] = '\0';
@@ -263,6 +291,7 @@ polar_t parseValue(const char* expr)
     value.magnitude = os_StrToReal(buf1, NULL);
     value.angle = r_0;
 
+    normalizeAngle(&value);
     return value;
 }
 
