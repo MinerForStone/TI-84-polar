@@ -11,13 +11,13 @@ struct polar_t
 
 typedef struct polar_t polar_t;
 
-struct complex_t
+struct component_t
 {
     real_t real;
     real_t imag;
 };
 
-typedef struct complex_t complex_t;
+typedef struct component_t component_t;
 
 real_t r_0, r_1, r_n1, r_pi;
 polar_t p_0, p_n1;
@@ -53,9 +53,9 @@ polar_t polarDiv(const polar_t* arg1, const polar_t* arg2)
     return result;
 }
 
-complex_t polar2complex(const polar_t* arg)
+component_t polar2component(const polar_t* arg)
 {
-    complex_t result;
+    component_t result;
     const real_t rad = os_RealDegToRad(&arg->angle);
 
     // Compute real
@@ -69,7 +69,7 @@ complex_t polar2complex(const polar_t* arg)
     return result;
 }
 
-polar_t complex2polar(const complex_t* arg)
+polar_t component2polar(const component_t* arg)
 {
     polar_t result;
 
@@ -77,7 +77,7 @@ polar_t complex2polar(const complex_t* arg)
     const real_t real_square = os_RealMul(&arg->real, &arg->real);
     const real_t imag_square = os_RealMul(&arg->imag, &arg->imag);
     result.magnitude = os_RealAdd(&real_square, &imag_square);
-    result.magnitude = os_RealSqrt(&result.magnitude);
+    result.magnitude = os_RealCompare(&result.magnitude, &r_0) == 0 ? r_0 : os_RealSqrt(&result.magnitude);
 
     // Compute angle
     if (os_RealCompare(&arg->real, &r_0) == 0)
@@ -111,14 +111,14 @@ polar_t complex2polar(const complex_t* arg)
 
 polar_t polarAdd(const polar_t* arg1, const polar_t* arg2)
 {
-    complex_t result;
+    component_t result;
 
-    const complex_t carg1 = polar2complex(arg1);
-    const complex_t carg2 = polar2complex(arg2);
+    const component_t carg1 = polar2component(arg1);
+    const component_t carg2 = polar2component(arg2);
     result.real = os_RealAdd(&carg1.real, &carg2.real);
     result.imag = os_RealAdd(&carg1.imag, &carg2.imag);
 
-    return complex2polar(&result);
+    return component2polar(&result);
 }
 
 polar_t polarSub(const polar_t* arg1, const polar_t* arg2)
@@ -127,16 +127,33 @@ polar_t polarSub(const polar_t* arg1, const polar_t* arg2)
     return polarAdd(arg1, &narg2);
 }
 
-unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits)
+unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits, bool asComponents)
 {
-    char mag_str[100];
-    char ang_str[100];
-    os_RealToStr(mag_str, &arg->magnitude, maxLength, mode, digits);
-    os_RealToStr(ang_str, &arg->angle, maxLength, mode, digits);
+    if (!asComponents)
+    {
+        char mag_str[100];
+        char ang_str[100];
+        os_RealToStr(mag_str, &arg->magnitude, maxLength, mode, digits);
+        os_RealToStr(ang_str, &arg->angle, maxLength, mode, digits);
 
-    strcpy(result, mag_str);
-    strcat(result, "\x14");
-    strcat(result, ang_str);
+        strcpy(result, mag_str);
+        strcat(result, "\x14");
+        strcat(result, ang_str);
+    }
+    else
+    {
+        const component_t carg = polar2component(arg);
+
+        char real_str[100];
+        char imag_str[100];
+        os_RealToStr(real_str, &carg.real, maxLength, mode, digits);
+        os_RealToStr(imag_str, &carg.imag, maxLength, mode, digits);
+
+        strcpy(result, real_str);
+        strcat(result, ",");
+        strcat(result, imag_str);
+        strcat(result, "i");
+    }
 
     return strlen(result);
 }
@@ -183,48 +200,67 @@ unsigned char map(const unsigned char* from, const unsigned char* to, const uint
 
 polar_t parseValue(const char* expr)
 {
-    polar_t value;
-    char mag_buf[100];
-    char ang_buf[100];
-    uint8_t ang_start = 0;
+    char buf1[100];
+    char buf2[100];
+    uint8_t buf2_start = 0;
 
     bool is_ang = false;
+    bool is_imag = false;
 
     // Separate magnitude and angle
     int i = 0;
     for (; expr[i] != '\0'; i++)
     {
-        if (is_ang)
+        if (is_ang || is_imag)
         {
-            ang_buf[i - ang_start] = expr[i];
+            buf2[i - buf2_start] = expr[i];
         }
         else if (expr[i] == '\x14')
         {
             // Check for angle sign
-            ang_start = i + 1;
-            mag_buf[i] = '\0';
+            buf2_start = i + 1;
+            buf1[i] = '\0';
             is_ang = true;
+        }
+        else if (expr[i] == ',')
+        {
+            // Check for comma
+            buf2_start = i + 1;
+            buf1[i] = '\0';
+            is_imag = true;
         }
         else
         {
-            mag_buf[i] = expr[i];
+            buf1[i] = expr[i];
         }
     }
 
     if (is_ang)
     {
-        ang_buf[i - ang_start] = '\0';
+        buf2[i - buf2_start] = '\0';
 
-        value.magnitude = os_StrToReal(mag_buf, NULL);
-        value.angle = os_StrToReal(ang_buf, NULL);
+        polar_t value;
+        value.magnitude = os_StrToReal(buf1, NULL);
+        value.angle = os_StrToReal(buf2, NULL);
+
+        return value;
     }
-    else
+    if (is_imag)
     {
-        mag_buf[i] = '\0';
+        buf2[i - buf2_start] = '\0';
 
-        value.magnitude = os_StrToReal(mag_buf, NULL);
-        value.angle = os_Int24ToReal(0);
+        component_t value;
+        value.real = os_StrToReal(buf1, NULL);
+        value.imag = os_StrToReal(buf2, NULL);
+
+        return component2polar(&value);
     }
+
+    buf1[i] = '\0';
+
+    polar_t value;
+    value.magnitude = os_StrToReal(buf1, NULL);
+    value.angle = r_0;
 
     return value;
 }
@@ -232,6 +268,8 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT "0"
+#define OPERATOR_COUNT 8
+#define CHAR_COUNT 14
 
 #define BINARY_OP(k, function)\
 if (key == k && stack_idx > 1)\
@@ -245,12 +283,14 @@ int main()
     init_consts();
     os_ClrHome();
 
-    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del};
-    const uint8_t valid_char_keys[] = {k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_DecPnt, k_Chs, k_Sin};
-    const unsigned char valid_chars[] = "0123456789.\x1A\x14";
+    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode};
+    const uint8_t valid_char_keys[] = {k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin};
+    const unsigned char valid_chars[] = "0123456789,.\x1A\x14";
 
     polar_t stack[STACK_SIZE];
     uint8_t stack_idx = 0;
+
+    bool componentsMode = false;
 
     uint8_t key;
 
@@ -262,19 +302,22 @@ int main()
         input_buf[0] = '\0';
         print(BLANK_INPUT, LAST_LINE);
 
-        while (!contains(valid_operator_keys, 7, key = (uint8_t)os_GetKey()))
+        while (!contains(valid_operator_keys, OPERATOR_COUNT, key = (uint8_t)os_GetKey()))
         {
             if (key == k_Quit)
                 return 0;
 
-            if (contains(valid_char_keys, 13, key))
+            if (contains(valid_char_keys, CHAR_COUNT, key))
             {
-                input_buf[input_idx++] = (char)map(valid_char_keys, valid_chars, 13, key);
+                input_buf[input_idx++] = (char)map(valid_char_keys, valid_chars, CHAR_COUNT, key);
                 input_buf[input_idx] = '\0';
             }
 
-            print(input_idx ? input_buf : BLANK_INPUT, LAST_LINE);
+            print(input_idx > 0 ? input_buf : BLANK_INPUT, LAST_LINE);
         }
+
+        if (key == k_Mode)
+            componentsMode = !componentsMode;
 
         if (key == k_Enter && stack_idx < STACK_SIZE)
         {
@@ -299,7 +342,7 @@ int main()
         {
             if (i < stack_idx)
             {
-                polarToStr(output_buf, &stack[i], -1, 0, -1);
+                polarToStr(output_buf, &stack[i], -1, 0, -1, componentsMode);
                 print(output_buf, i);
             }
             else
