@@ -1,5 +1,6 @@
 #include <ti/screen.h>
 #include <ti/getkey.h>
+#include <ti/getcsc.h>
 #include <ti/real.h>
 #include <string.h>
 
@@ -304,7 +305,7 @@ int main()
 
         while (!contains(valid_operator_keys, OPERATOR_COUNT, key = (uint8_t)os_GetKey()))
         {
-            if (key == k_Quit)
+            if (key == k_Quit || boot_CheckOnPressed())
                 return 0;
 
             if (contains(valid_char_keys, CHAR_COUNT, key))
