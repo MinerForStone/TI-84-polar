@@ -153,6 +153,16 @@ polar_t polarSub(const polar_t* arg1, const polar_t* arg2)
     return polarAdd(arg1, &narg2);
 }
 
+polar_t polarInsertAngle(const polar_t* magnitude, const polar_t* angle)
+{
+    polar_t result;
+
+    result.magnitude = magnitude->magnitude;
+    result.angle = angle->magnitude;
+
+    return result;
+}
+
 unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits, bool asComponents)
 {
     if (!asComponents)
@@ -304,7 +314,7 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT "0"
-#define OPERATOR_COUNT 8
+#define OPERATOR_COUNT 9
 #define CHAR_COUNT 14
 
 #define BINARY_OP(k, function)\
@@ -319,7 +329,7 @@ int main()
     init_consts();
     os_ClrHome();
 
-    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode};
+    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos};
     const uint8_t valid_char_keys[] = {k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin};
     const unsigned char valid_chars[] = "0123456789,.\x1A\x14";
 
@@ -373,6 +383,7 @@ int main()
         BINARY_OP(k_Sub, polarSub)
         BINARY_OP(k_Mul, polarMul)
         BINARY_OP(k_Div, polarDiv)
+        BINARY_OP(k_Cos, polarInsertAngle)
 
         for (int i = 0; i < STACK_SIZE; i++)
         {
