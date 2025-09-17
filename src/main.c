@@ -153,6 +153,28 @@ polar_t polarSub(const polar_t* arg1, const polar_t* arg2)
     return polarAdd(arg1, &narg2);
 }
 
+polar_t polarExpon(const polar_t* arg1, const polar_t* arg2)
+{
+    const component_t c_arg2 = polar2component(arg2);
+
+    real_t exp1 = os_RealLog(&arg1->magnitude);
+    exp1 = os_RealMul(&c_arg2.real, &exp1);
+    real_t exp1a = os_RealDegToRad(&arg1->angle);
+    exp1a = os_RealMul(&c_arg2.imag, &exp1a);
+    exp1 = os_RealSub(&exp1, &exp1a);
+
+    real_t exp2 = os_RealLog(&arg1->magnitude);
+    exp2 = os_RealMul(&c_arg2.imag, &exp2);
+    real_t exp2a = os_RealDegToRad(&arg1->angle);
+    exp2a = os_RealMul(&c_arg2.real, &exp2a);
+    exp2 = os_RealAdd(&exp2, &exp2a);
+
+    polar_t fact1 = {os_RealExp(&exp1), r_0};
+    polar_t fact2 = {r_1, os_RealRadToDeg(&exp2)};
+
+    return polarMul(&fact1, &fact2);
+}
+
 polar_t polarInsertAngle(const polar_t* magnitude, const polar_t* angle)
 {
     polar_t result;
@@ -198,18 +220,6 @@ unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint
     }
 
     return strlen(result);
-}
-
-real_t magnitude(const polar_t* arg)
-{
-    return os_RealCompare(&arg->magnitude, &r_0) == -1 ? os_RealNeg(&arg->magnitude) : arg->magnitude;
-}
-
-int magnitudeCompare(const polar_t* arg1, const polar_t* arg2)
-{
-    const real_t len1 = magnitude(arg1);
-    const real_t len2 = magnitude(arg2);
-    return os_RealCompare(&len1, &len2);
 }
 
 void print(const char* str, const uint8_t line)
@@ -314,7 +324,7 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT "0"
-#define OPERATOR_COUNT 9
+#define OPERATOR_COUNT 10
 #define CHAR_COUNT 14
 
 #define BINARY_OP(k, function)\
@@ -329,7 +339,7 @@ int main()
     init_consts();
     os_ClrHome();
 
-    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos};
+    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon};
     const uint8_t valid_char_keys[] = {k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin};
     const unsigned char valid_chars[] = "0123456789,.\x1A\x14";
 
@@ -384,6 +394,7 @@ int main()
         BINARY_OP(k_Mul, polarMul)
         BINARY_OP(k_Div, polarDiv)
         BINARY_OP(k_Cos, polarInsertAngle)
+        BINARY_OP(k_Expon, polarExpon)
 
         for (int i = 0; i < STACK_SIZE; i++)
         {
