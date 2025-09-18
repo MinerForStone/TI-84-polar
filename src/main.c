@@ -20,7 +20,7 @@ struct component_t
 
 typedef struct component_t component_t;
 
-real_t r_0, r_1, r_180, r_360, r_n1, r_n180, r_pi;
+real_t r_0, r_1, r_180, r_360, r_n1, r_n180, r_pi, r_e;
 polar_t p_0, p_n1;
 
 void init_consts()
@@ -32,6 +32,7 @@ void init_consts()
     r_n1 = os_Int24ToReal(-1);
     r_n180 = os_Int24ToReal(-180);
     r_pi = os_RealAcosRad(&r_n1);
+    r_e = os_RealExp(&r_1);
 
     p_0 = (polar_t){r_0, r_0};
     p_n1 = (polar_t){r_1, os_RealRadToDeg(&r_pi)};
@@ -324,7 +325,7 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT "0"
-#define OPERATOR_COUNT 10
+#define OPERATOR_COUNT 12
 #define CHAR_COUNT 14
 
 #define BINARY_OP(k, function)\
@@ -339,7 +340,7 @@ int main()
     init_consts();
     os_ClrHome();
 
-    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon};
+    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon, k_Pi, k_CONSTeA};
     const uint8_t valid_char_keys[] = {k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin};
     const unsigned char valid_chars[] = "0123456789,.\x1A\x14";
 
@@ -395,6 +396,15 @@ int main()
         BINARY_OP(k_Div, polarDiv)
         BINARY_OP(k_Cos, polarInsertAngle)
         BINARY_OP(k_Expon, polarExpon)
+
+        if (key == k_Pi && stack_idx < STACK_SIZE)
+        {
+            stack[stack_idx++] = (polar_t){r_pi, r_0};
+        }
+        if (key == k_CONSTeA && stack_idx < STACK_SIZE)
+        {
+            stack[stack_idx++] = (polar_t){r_e, r_0};
+        }
 
         for (int i = 0; i < STACK_SIZE; i++)
         {
