@@ -350,7 +350,7 @@ polar_t parseValue(const char* expr)
 
 #define STACK_SIZE 9
 #define LAST_LINE 9
-#define BLANK_INPUT "0"
+#define BLANK_INPUT ">"
 #define OPERATOR_COUNT 17
 #define CHAR_COUNT 14
 
