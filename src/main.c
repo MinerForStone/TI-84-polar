@@ -21,7 +21,7 @@ struct component_t
 typedef struct component_t component_t;
 
 real_t r_0, r_1, r_180, r_360, r_n1, r_n180, r_pi, r_e;
-polar_t p_0, p_n1;
+polar_t p_0, p_0_5, p_10, p_n1;
 
 void init_consts()
 {
@@ -35,10 +35,12 @@ void init_consts()
     r_e = os_RealExp(&r_1);
 
     p_0 = (polar_t){r_0, r_0};
+    p_0_5 = (polar_t){os_FloatToReal((float)0.5), r_0};
+    p_10 = (polar_t){os_Int24ToReal(10), r_0};
     p_n1 = (polar_t){r_1, os_RealRadToDeg(&r_pi)};
 }
 
-void normalizeAngle(polar_t *arg)
+void normalizeAngle(polar_t* arg)
 {
     if (os_RealCompare(&arg->magnitude, &r_0) == -1)
     {
@@ -117,7 +119,7 @@ polar_t component2polar(const component_t* arg)
         case 1:
             result.angle = os_Int24ToReal(90);
             break;
-            default: ;
+        default: ;
         }
     }
     else
@@ -186,7 +188,20 @@ polar_t polarInsertAngle(const polar_t* magnitude, const polar_t* angle)
     return result;
 }
 
-unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits, bool asComponents)
+polar_t polarExp10(const polar_t* arg1, const polar_t* arg2)
+{
+    polar_t result = polarExpon(&p_10, arg2);
+    result = polarMul(arg1, &result);
+    return result;
+}
+
+polar_t polarSqrt(const polar_t *arg)
+{
+    return polarExpon(arg, &p_0_5);
+}
+
+unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits,
+                        bool asComponents)
 {
     if (!asComponents)
     {
@@ -325,23 +340,36 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT "0"
-#define OPERATOR_COUNT 12
+#define OPERATOR_COUNT 16
 #define CHAR_COUNT 14
 
+#define UNARY_OP(k, function)\
+    if (key == k && stack_idx > 0)\
+    {\
+        stack[stack_idx - 1] = function(&stack[stack_idx - 1]);\
+    }
+
 #define BINARY_OP(k, function)\
-if (key == k && stack_idx > 1)\
-{\
-    stack[stack_idx - 2] = function(&stack[stack_idx - 2], &stack[stack_idx -1]);\
-    stack_idx--;\
-}
+    if (key == k && stack_idx > 1)\
+    {\
+       stack[stack_idx - 2] = function(&stack[stack_idx - 2], &stack[stack_idx -1]);\
+       stack_idx--;\
+    }
 
 int main()
 {
     init_consts();
     os_ClrHome();
 
-    const uint8_t valid_operator_keys[] = {k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon, k_Pi, k_CONSTeA};
-    const uint8_t valid_char_keys[] = {k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin};
+    polar_t memory = {r_0, r_0};
+
+    const uint8_t valid_operator_keys[] = {
+        k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon,
+        k_Pi, k_CONSTeA, k_Store, k_Recall, k_EE, k_Sqrt
+    };
+    const uint8_t valid_char_keys[] = {
+        k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin
+    };
     const unsigned char valid_chars[] = "0123456789,.\x1A\x14";
 
     polar_t stack[STACK_SIZE];
@@ -390,12 +418,15 @@ int main()
         default: ;
         }
 
+        UNARY_OP(k_Sqrt, polarSqrt)
+
         BINARY_OP(k_Add, polarAdd)
         BINARY_OP(k_Sub, polarSub)
         BINARY_OP(k_Mul, polarMul)
         BINARY_OP(k_Div, polarDiv)
         BINARY_OP(k_Cos, polarInsertAngle)
         BINARY_OP(k_Expon, polarExpon)
+        BINARY_OP(k_EE, polarExp10)
 
         if (key == k_Pi && stack_idx < STACK_SIZE)
         {
@@ -404,6 +435,15 @@ int main()
         if (key == k_CONSTeA && stack_idx < STACK_SIZE)
         {
             stack[stack_idx++] = (polar_t){r_e, r_0};
+        }
+
+        if (key == k_Store)
+        {
+            memory = stack[stack_idx - 1];
+        }
+        if (key == k_Recall && stack_idx < STACK_SIZE)
+        {
+            stack[stack_idx++] = memory;
         }
 
         for (int i = 0; i < STACK_SIZE; i++)
