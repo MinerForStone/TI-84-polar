@@ -70,6 +70,9 @@ polar_t polarMul(const polar_t* arg1, const polar_t* arg2)
 
 polar_t polarDiv(const polar_t* arg1, const polar_t* arg2)
 {
+    if (os_RealCompare(&arg2->magnitude, &r_0) == 0)
+        return p_0; // Prevent program crash when dividing by zero
+
     polar_t result;
 
     result.magnitude = os_RealDiv(&arg1->magnitude, &arg2->magnitude);
@@ -158,6 +161,9 @@ polar_t polarSub(const polar_t* arg1, const polar_t* arg2)
 
 polar_t polarExpon(const polar_t* arg1, const polar_t* arg2)
 {
+    if (os_RealCompare(&arg1->magnitude, &r_0) == 0)
+        return p_0; // Prevent domain error with ln calculation
+
     const component_t c_arg2 = polar2component(arg2);
 
     real_t exp1 = os_RealLog(&arg1->magnitude);
