@@ -200,6 +200,11 @@ polar_t polarSqrt(const polar_t *arg)
     return polarExpon(arg, &p_0_5);
 }
 
+polar_t polarInv(const polar_t *arg)
+{
+    return polarExpon(arg, &p_n1);
+}
+
 unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits,
                         bool asComponents)
 {
@@ -340,7 +345,7 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT "0"
-#define OPERATOR_COUNT 16
+#define OPERATOR_COUNT 17
 #define CHAR_COUNT 14
 
 #define UNARY_OP(k, function)\
@@ -365,7 +370,7 @@ int main()
 
     const uint8_t valid_operator_keys[] = {
         k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon,
-        k_Pi, k_CONSTeA, k_Store, k_Recall, k_EE, k_Sqrt
+        k_Pi, k_CONSTeA, k_Store, k_Recall, k_EE, k_Sqrt, k_Inv
     };
     const uint8_t valid_char_keys[] = {
         k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin
@@ -419,6 +424,7 @@ int main()
         }
 
         UNARY_OP(k_Sqrt, polarSqrt)
+        UNARY_OP(k_Inv, polarInv)
 
         BINARY_OP(k_Add, polarAdd)
         BINARY_OP(k_Sub, polarSub)
