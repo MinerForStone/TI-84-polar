@@ -348,6 +348,11 @@ polar_t parseValue(const char* expr)
 #define OPERATOR_COUNT 17
 #define CHAR_COUNT 14
 
+#define RESET_INPUT()\
+    input_idx = 0;\
+    input_buf[0] = '\0';\
+    print(BLANK_INPUT, LAST_LINE);
+
 #define UNARY_OP(k, function)\
     if (key == k && stack_idx > 0)\
     {\
@@ -382,16 +387,15 @@ int main()
 
     bool componentsMode = false;
 
-    uint8_t key;
+    char output_buf[100];
+    char input_buf[100];
+    uint8_t input_idx;
 
+    RESET_INPUT()
+
+    uint8_t key;
     while (true)
     {
-        char output_buf[100];
-        char input_buf[100];
-        uint8_t input_idx = 0;
-        input_buf[0] = '\0';
-        print(BLANK_INPUT, LAST_LINE);
-
         while (!contains(valid_operator_keys, OPERATOR_COUNT, key = (uint8_t)os_GetKey()))
         {
             if (key == k_Quit || boot_CheckOnPressed())
@@ -407,20 +411,22 @@ int main()
         }
 
         if (key == k_Mode)
+        {
             componentsMode = !componentsMode;
-
-        if (key == k_Enter && stack_idx < STACK_SIZE)
+        }
+        else if (key == k_Clear)
+        {
+            stack_idx = 0;
+            RESET_INPUT()
+        }
+        else if (key == k_Del)
+        {
+            RESET_INPUT()
+        }
+        else if (stack_idx < STACK_SIZE && input_idx > 0)
         {
             stack[stack_idx++] = parseValue(input_buf);
-        }
-
-        switch (key)
-        {
-        case k_Clear:
-            stack_idx = 0;
-        case k_Del:
-            input_buf[0] = '\0';
-        default: ;
+            RESET_INPUT()
         }
 
         UNARY_OP(k_Sqrt, polarSqrt)
