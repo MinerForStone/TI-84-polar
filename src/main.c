@@ -20,13 +20,14 @@ struct component_t
 
 typedef struct component_t component_t;
 
-real_t r_0, r_1, r_180, r_360, r_n1, r_n180, r_pi, r_e;
+real_t r_0, r_1, r_90, r_180, r_360, r_n1, r_n180, r_pi, r_e;
 polar_t p_0, p_0_5, p_10, p_n1;
 
 void init_consts()
 {
     r_0 = os_Int24ToReal(0);
     r_1 = os_Int24ToReal(1);
+    r_90 = os_Int24ToReal(90);
     r_180 = os_Int24ToReal(180);
     r_360 = os_Int24ToReal(360);
     r_n1 = os_Int24ToReal(-1);
@@ -351,7 +352,7 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT ">"
-#define OPERATOR_COUNT 17
+#define OPERATOR_COUNT 18
 #define CHAR_COUNT 14
 
 #define RESET_INPUT()\
@@ -381,7 +382,7 @@ int main()
 
     const uint8_t valid_operator_keys[] = {
         k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon,
-        k_Pi, k_CONSTeA, k_Store, k_Recall, k_EE, k_Sqrt, k_Inv
+        k_Pi, k_CONSTeA, k_I, k_Store, k_Recall, k_EE, k_Sqrt, k_Inv
     };
     const uint8_t valid_char_keys[] = {
         k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin
@@ -453,6 +454,10 @@ int main()
         if (key == k_CONSTeA && stack_idx < STACK_SIZE)
         {
             stack[stack_idx++] = (polar_t){r_e, r_0};
+        }
+        if (key == k_I && stack_idx < STACK_SIZE)
+        {
+            stack[stack_idx++] = (polar_t){r_1, r_90};
         }
 
         if (key == k_Store)

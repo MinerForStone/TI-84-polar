@@ -8,6 +8,7 @@
 ## Constants
 * π
 * e
+* i
 
 ## Operations
 * Addition
