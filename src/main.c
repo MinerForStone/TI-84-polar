@@ -428,7 +428,14 @@ int main()
         }
         else if (key == k_Del)
         {
-            RESET_INPUT()
+            if (input_idx > 0)
+            {
+                RESET_INPUT()
+            }
+            else if (stack_idx > 0)
+            {
+                stack_idx--;
+            }
         }
         else if (stack_idx < STACK_SIZE && input_idx > 0)
         {
