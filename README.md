@@ -15,7 +15,7 @@
 * Subtraction
 * Multiplication
 * Division
-* Complex Conjugate
+* Complex Conjugate ("tan" key)
 * Exponent
 * Square Root
 * Square
