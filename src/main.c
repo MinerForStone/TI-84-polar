@@ -21,7 +21,7 @@ struct component_t
 typedef struct component_t component_t;
 
 real_t r_0, r_1, r_90, r_180, r_360, r_n1, r_n180, r_pi, r_e;
-polar_t p_0, p_0_5, p_10, p_n1;
+polar_t p_0, p_0_5, p_2, p_10, p_n1;
 
 void init_consts()
 {
@@ -37,6 +37,7 @@ void init_consts()
 
     p_0 = (polar_t){r_0, r_0};
     p_0_5 = (polar_t){os_FloatToReal((float)0.5), r_0};
+    p_2 = (polar_t){os_Int24ToReal(2), r_0};
     p_10 = (polar_t){os_Int24ToReal(10), r_0};
     p_n1 = (polar_t){r_1, os_RealRadToDeg(&r_pi)};
 }
@@ -185,13 +186,25 @@ polar_t polarExpon(const polar_t* arg1, const polar_t* arg2)
     return polarMul(&fact1, &fact2);
 }
 
-polar_t polarInsertAngle(const polar_t* magnitude, const polar_t* angle)
+polar_t polarAssertAngle(const polar_t* magnitude, const polar_t* angle)
 {
     polar_t result;
 
     result.magnitude = magnitude->magnitude;
-    result.angle = angle->magnitude;
+    result.angle = polar2component(angle).real;
 
+    normalizeAngle(&result);
+    return result;
+}
+
+polar_t polarConjugate(const polar_t* arg)
+{
+    polar_t result;
+
+    result.magnitude = arg->magnitude;
+    result.angle = os_RealNeg(&arg->angle);
+
+    normalizeAngle(&result);
     return result;
 }
 
@@ -205,6 +218,11 @@ polar_t polarExp10(const polar_t* arg1, const polar_t* arg2)
 polar_t polarSqrt(const polar_t *arg)
 {
     return polarExpon(arg, &p_0_5);
+}
+
+polar_t polarSquare(const polar_t *arg)
+{
+    return polarExpon(arg, &p_2);
 }
 
 polar_t polarInv(const polar_t *arg)
@@ -278,7 +296,7 @@ unsigned char map(const unsigned char* from, const unsigned char* to, const uint
     return '?';
 }
 
-polar_t parseValue(const char* expr)
+polar_t strToPolar(const char* expr)
 {
     char buf1[100];
     char buf2[100];
@@ -352,7 +370,7 @@ polar_t parseValue(const char* expr)
 #define STACK_SIZE 9
 #define LAST_LINE 9
 #define BLANK_INPUT ">"
-#define OPERATOR_COUNT 18
+#define OPERATOR_COUNT 20
 #define CHAR_COUNT 14
 
 #define RESET_INPUT()\
@@ -381,8 +399,8 @@ int main()
     polar_t memory = {r_0, r_0};
 
     const uint8_t valid_operator_keys[] = {
-        k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Expon,
-        k_Pi, k_CONSTeA, k_I, k_Store, k_Recall, k_EE, k_Sqrt, k_Inv
+        k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Tan, k_Expon,
+        k_Pi, k_CONSTeA, k_I, k_Store, k_Recall, k_EE, k_Sqrt, k_Square, k_Inv
     };
     const uint8_t valid_char_keys[] = {
         k_0, k_1, k_2, k_3, k_4, k_5, k_6, k_7, k_8, k_9, k_Comma, k_DecPnt, k_Chs, k_Sin
@@ -439,18 +457,20 @@ int main()
         }
         else if (stack_idx < STACK_SIZE && input_idx > 0)
         {
-            stack[stack_idx++] = parseValue(input_buf);
+            stack[stack_idx++] = strToPolar(input_buf);
             RESET_INPUT()
         }
 
         UNARY_OP(k_Sqrt, polarSqrt)
+        UNARY_OP(k_Square, polarSquare)
         UNARY_OP(k_Inv, polarInv)
+        UNARY_OP(k_Tan, polarConjugate)
 
         BINARY_OP(k_Add, polarAdd)
         BINARY_OP(k_Sub, polarSub)
         BINARY_OP(k_Mul, polarMul)
         BINARY_OP(k_Div, polarDiv)
-        BINARY_OP(k_Cos, polarInsertAngle)
+        BINARY_OP(k_Cos, polarAssertAngle)
         BINARY_OP(k_Expon, polarExpon)
         BINARY_OP(k_EE, polarExp10)
 
