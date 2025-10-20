@@ -15,8 +15,10 @@
 * Subtraction
 * Multiplication
 * Division
+* Complex Conjugate
 * Exponent
 * Square Root
+* Square
 * Multiplicative Inverse (x^-1)
 * Scientific Notation (EE; takes the first argument as the value and the second as the exponent of 10)
 * Magnitude as Angle (press the "cos" key to replace the angle of the first argument with the magnitude of the second)
