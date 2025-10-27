@@ -260,9 +260,11 @@ unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint
         os_RealToStr(imag_str, &c_arg.imag, maxLength, mode, digits);
 
         strcpy(result, real_str);
-        strcat(result, sub_imag ? "-" : "+");
-        strcat(result, imag_str);
-        strcat(result, "i");
+        if (os_RealCompare(&c_arg.imag, &r_0) != 0)
+        {
+            strcat(result, sub_imag ? "-j" : "+j");
+            strcat(result, imag_str);
+        }
     }
 
     return strlen(result);
