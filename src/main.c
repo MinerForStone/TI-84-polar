@@ -2,6 +2,7 @@
 #include <ti/getkey.h>
 #include <ti/getcsc.h>
 #include <ti/real.h>
+#include <ti/vars.h>
 #include <string.h>
 
 struct polar_t
@@ -398,7 +399,9 @@ int main()
     init_consts();
     os_ClrHome();
 
-    polar_t memory = {r_0, r_0};
+    polar_t memory;
+    os_GetRealVar("Z", &memory.magnitude);
+    os_GetRealVar("\x5B", &memory.angle); // x5B is theta
 
     const uint8_t valid_operator_keys[] = {
         k_Enter, k_Add, k_Sub, k_Mul, k_Div, k_Clear, k_Del, k_Mode, k_Cos, k_Tan, k_Expon,
@@ -426,7 +429,11 @@ int main()
         while (!contains(valid_operator_keys, OPERATOR_COUNT, key = (uint8_t)os_GetKey()))
         {
             if (key == k_Quit || boot_CheckOnPressed())
+            {
+                os_SetRealVar("Z", &memory.magnitude);
+                os_SetRealVar("\x5B", &memory.angle);
                 return 0;
+            }
 
             if (contains(valid_char_keys, CHAR_COUNT, key))
             {
