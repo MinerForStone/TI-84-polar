@@ -371,15 +371,16 @@ polar_t strToPolar(const char* expr)
 }
 
 #define STACK_SIZE 9
-#define LAST_LINE 9
-#define BLANK_INPUT ">"
+#define LAST_LINE stack_idx
+#define CURSOR ">"
 #define OPERATOR_COUNT 20
 #define CHAR_COUNT 14
 
 #define RESET_INPUT()\
     input_idx = 0;\
     input_buf[0] = '\0';\
-    print(BLANK_INPUT, LAST_LINE);
+    if (stack_idx < STACK_SIZE)\
+        print(CURSOR, LAST_LINE);
 
 #define UNARY_OP(k, function)\
     if (key == k && stack_idx > 0)\
@@ -435,23 +436,22 @@ int main()
                 return 0;
             }
 
-            if (contains(valid_char_keys, CHAR_COUNT, key))
+            if (contains(valid_char_keys, CHAR_COUNT, key) && stack_idx < STACK_SIZE)
             {
                 input_buf[input_idx++] = (char)map(valid_char_keys, valid_chars, CHAR_COUNT, key);
                 input_buf[input_idx] = '\0';
+                print(CURSOR, LAST_LINE);
+                os_PutStrLine(input_buf); // Line clear and cursor handled by print() already
             }
-
-            print(input_idx > 0 ? input_buf : BLANK_INPUT, LAST_LINE);
         }
 
-        if (key == k_Mode)
+        if (key == k_Mode) // TODO: Make this not delete entry
         {
             componentsMode = !componentsMode;
         }
         else if (key == k_Clear)
         {
             stack_idx = 0;
-            RESET_INPUT()
         }
         else if (key == k_Del)
         {
@@ -467,7 +467,6 @@ int main()
         else if (stack_idx < STACK_SIZE && input_idx > 0)
         {
             stack[stack_idx++] = strToPolar(input_buf);
-            RESET_INPUT()
         }
 
         UNARY_OP(k_Sqrt, polarSqrt)
@@ -517,5 +516,6 @@ int main()
                 print("", i);
             }
         }
+        RESET_INPUT()
     }
 }
