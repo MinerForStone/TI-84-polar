@@ -5,6 +5,7 @@
 #include <ti/vars.h>
 #include <string.h>
 
+// A complex number, in polar form
 struct polar_t
 {
     real_t magnitude;
@@ -13,6 +14,7 @@ struct polar_t
 
 typedef struct polar_t polar_t;
 
+// A complex number, in component form
 struct component_t
 {
     real_t real;
@@ -24,6 +26,7 @@ typedef struct component_t component_t;
 real_t r_0, r_1, r_90, r_180, r_360, r_n1, r_n180, r_pi, r_e;
 polar_t p_0, p_0_5, p_2, p_10, p_n1;
 
+// Create constants required for certain calculations
 void init_consts()
 {
     r_0 = os_Int24ToReal(0);
@@ -43,6 +46,7 @@ void init_consts()
     p_n1 = (polar_t){r_1, os_RealRadToDeg(&r_pi)};
 }
 
+// Constrain the angle to +/-180 degrees
 void normalizeAngle(polar_t* arg)
 {
     if (os_RealCompare(&arg->magnitude, &r_0) == -1)
@@ -59,6 +63,8 @@ void normalizeAngle(polar_t* arg)
         arg->angle = os_RealAdd(&arg->angle, &r_360);
     }
 }
+
+/* Begin operation definitions */
 
 polar_t polarMul(const polar_t* arg1, const polar_t* arg2)
 {
@@ -231,6 +237,9 @@ polar_t polarInv(const polar_t *arg)
     return polarExpon(arg, &p_n1);
 }
 
+/* End operation definitions */
+
+// Convert a polar value into a single, human-readable string
 unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint8_t mode, int8_t digits,
                         bool asComponents)
 {
@@ -271,6 +280,7 @@ unsigned int polarToStr(char* result, const polar_t* arg, int8_t maxLength, uint
     return strlen(result);
 }
 
+// Simplified version of os_PutStrLine() with line clear
 void print(const char* str, const uint8_t line)
 {
     os_SetCursorPos(line, 0);
@@ -299,6 +309,7 @@ unsigned char map(const unsigned char* from, const unsigned char* to, const uint
     return '?';
 }
 
+// Convert a properly formatted string to a complex number in polar form
 polar_t strToPolar(const char* expr)
 {
     char buf1[100];
@@ -370,7 +381,7 @@ polar_t strToPolar(const char* expr)
     return value;
 }
 
-#define STACK_SIZE 9
+#define STACK_SIZE 10
 #define LAST_LINE stack_idx
 #define CURSOR ">"
 #define OPERATOR_COUNT 20
@@ -378,9 +389,14 @@ polar_t strToPolar(const char* expr)
 
 #define RESET_INPUT()\
     input_idx = 0;\
-    input_buf[0] = '\0';\
+    input_buf[0] = '\0';
+
+#define PRINT_INPUT()\
     if (stack_idx < STACK_SIZE)\
-        print(CURSOR, LAST_LINE);
+    {\
+        print(CURSOR, LAST_LINE);\
+        os_PutStrLine(input_buf);\
+    }
 
 #define UNARY_OP(k, function)\
     if (key == k && stack_idx > 0)\
@@ -423,12 +439,15 @@ int main()
     uint8_t input_idx;
 
     RESET_INPUT()
+    PRINT_INPUT()
 
     uint8_t key;
     while (true)
     {
+        // Listen for key presses
         while (!contains(valid_operator_keys, OPERATOR_COUNT, key = (uint8_t)os_GetKey()))
         {
+            // Program exit
             if (key == k_Quit || boot_CheckOnPressed())
             {
                 os_SetRealVar("Z", &memory.magnitude);
@@ -436,24 +455,21 @@ int main()
                 return 0;
             }
 
+            // Typing implementation
             if (contains(valid_char_keys, CHAR_COUNT, key) && stack_idx < STACK_SIZE)
             {
                 input_buf[input_idx++] = (char)map(valid_char_keys, valid_chars, CHAR_COUNT, key);
                 input_buf[input_idx] = '\0';
-                print(CURSOR, LAST_LINE);
-                os_PutStrLine(input_buf); // Line clear and cursor handled by print() already
+                PRINT_INPUT()
             }
         }
 
-        if (key == k_Mode) // TODO: Make this not delete entry
-        {
-            componentsMode = !componentsMode;
-        }
-        else if (key == k_Clear)
+        // Deletion operations
+        if (key == k_Clear)
         {
             stack_idx = 0;
         }
-        else if (key == k_Del)
+        if (key == k_Del)
         {
             if (input_idx > 0)
             {
@@ -464,9 +480,16 @@ int main()
                 stack_idx--;
             }
         }
+
+        // Non-operative keys (do not need to flush input)
+        if (key == k_Mode)
+        {
+            componentsMode = !componentsMode;
+        }
         else if (stack_idx < STACK_SIZE && input_idx > 0)
         {
-            stack[stack_idx++] = strToPolar(input_buf);
+            stack[stack_idx++] = strToPolar(input_buf); // Flush input on operation executed
+            RESET_INPUT()
         }
 
         UNARY_OP(k_Sqrt, polarSqrt)
@@ -516,6 +539,7 @@ int main()
                 print("", i);
             }
         }
-        RESET_INPUT()
+
+        PRINT_INPUT()
     }
 }
