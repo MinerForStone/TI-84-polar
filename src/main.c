@@ -236,7 +236,7 @@ polar_t polarInv(const polar_t *arg)
 {
     return polarExpon(arg, &p_n1);
 }
-
+// TODO: arctrig operations and norm
 /* End operation definitions */
 
 // Convert a polar value into a single, human-readable string
@@ -468,6 +468,7 @@ int main()
         if (key == k_Clear)
         {
             stack_idx = 0;
+            RESET_INPUT()
         }
         if (key == k_Del)
         {
